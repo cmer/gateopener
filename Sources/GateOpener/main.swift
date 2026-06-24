@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -149,10 +150,12 @@ enum DropStatus: Equatable {
     case success(String)
     case failure(String)
 
-    init(_ result: Result<String, GateOpenerError>) {
+    fileprivate init(_ result: Result<UnlockOutcome, GateOpenerError>) {
         switch result {
-        case .success(let appName):
+        case .success(.removed(let appName)):
             self = .success("Gatekeeper quarantine removed from \(appName).")
+        case .success(.alreadyUnlocked(let appName)):
+            self = .success("\(appName) was already unlocked.")
         case .failure(let error):
             self = .failure(error.localizedDescription)
         }
@@ -207,6 +210,11 @@ enum GateOpenerError: LocalizedError {
     }
 }
 
+fileprivate enum UnlockOutcome: Equatable {
+    case removed(String)
+    case alreadyUnlocked(String)
+}
+
 private func resolveDroppedURL(from item: NSSecureCoding?, error: Error?) -> Result<URL, GateOpenerError> {
     guard error == nil else {
         return .failure(.unreadableDrop)
@@ -229,10 +237,20 @@ private func resolveDroppedURL(from item: NSSecureCoding?, error: Error?) -> Res
     return .failure(.unreadableDrop)
 }
 
-private func removeQuarantineAttribute(from url: URL) -> Result<String, GateOpenerError> {
+private func removeQuarantineAttribute(from url: URL) -> Result<UnlockOutcome, GateOpenerError> {
     let standardizedURL = url.standardizedFileURL
     guard isApplicationBundle(standardizedURL) else {
         return .failure(.notAnApplication(standardizedURL))
+    }
+
+    let appName = standardizedURL.lastPathComponent
+    switch appBundleContainsQuarantineAttribute(standardizedURL) {
+    case .success(true):
+        break
+    case .success(false):
+        return .success(.alreadyUnlocked(appName))
+    case .failure(let error):
+        return .failure(error)
     }
 
     let process = Process()
@@ -250,7 +268,7 @@ private func removeQuarantineAttribute(from url: URL) -> Result<String, GateOpen
     }
 
     if process.terminationStatus == 0 {
-        return .success(standardizedURL.lastPathComponent)
+        return .success(.removed(appName))
     }
 
     let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
@@ -264,4 +282,77 @@ private func isApplicationBundle(_ url: URL) -> Bool {
     var isDirectory: ObjCBool = false
     let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
     return exists && isDirectory.boolValue && url.pathExtension.lowercased() == "app"
+}
+
+private func appBundleContainsQuarantineAttribute(_ rootURL: URL) -> Result<Bool, GateOpenerError> {
+    switch urlHasQuarantineAttribute(rootURL) {
+    case .success(true):
+        return .success(true)
+    case .success(false):
+        break
+    case .failure(let error):
+        return .failure(error)
+    }
+
+    var enumerationError: Error?
+    let enumerator = FileManager.default.enumerator(
+        at: rootURL,
+        includingPropertiesForKeys: nil,
+        options: [],
+        errorHandler: { _, error in
+            enumerationError = error
+            return false
+        }
+    )
+
+    guard let enumerator else {
+        return .failure(.xattrFailed("Could not inspect the app bundle."))
+    }
+
+    for case let childURL as URL in enumerator {
+        switch urlHasQuarantineAttribute(childURL) {
+        case .success(true):
+            return .success(true)
+        case .success(false):
+            continue
+        case .failure(let error):
+            return .failure(error)
+        }
+    }
+
+    if let enumerationError {
+        return .failure(.xattrFailed("Could not inspect the app bundle: \(enumerationError.localizedDescription)"))
+    }
+
+    return .success(false)
+}
+
+private func urlHasQuarantineAttribute(_ url: URL) -> Result<Bool, GateOpenerError> {
+    let status = url.withUnsafeFileSystemRepresentation { filePath -> Int32 in
+        guard let filePath else {
+            return -EINVAL
+        }
+
+        errno = 0
+        let result = getxattr(filePath, "com.apple.quarantine", nil, 0, 0, 0)
+
+        if result >= 0 {
+            return 1
+        }
+
+        if errno == ENOATTR || errno == ENOENT {
+            return 0
+        }
+
+        return -errno
+    }
+
+    switch status {
+    case 1:
+        return .success(true)
+    case 0:
+        return .success(false)
+    default:
+        return .failure(.xattrFailed("Could not inspect quarantine status for \(url.lastPathComponent)."))
+    }
 }
