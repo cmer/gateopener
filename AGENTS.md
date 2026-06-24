@@ -51,6 +51,21 @@ The repository has only an initial commit, so no strict commit convention is est
 
 Pull requests should include a brief description, verification commands run, and screenshots or screen recordings for visible UI changes. Note any macOS version assumptions, Finder registration behavior, or security-sensitive behavior changes.
 
+## Changelog Guidelines
+
+Keep `CHANGELOG.md` updated with notable user-facing changes. Follow the existing Keep a Changelog style and group entries under the same headings used by PhotoProof:
+
+- `Features` for new user-visible behavior.
+- `Bug Fixes` for bug fixes.
+- `Performance` for optimizations users will notice.
+- `Refactor` for non-behavioral code changes worth recording.
+- `Documentation` for README, comments, and contributor guidance.
+- `Build` for build scripts, release scripts, and app bundle configuration.
+- `Chores` for dependency bumps and housekeeping.
+- `Other` for notable changes that do not fit a recognized category.
+
+Use Conventional Commit-style wording as the source for changelog entries when possible, and write entries as user-readable release notes. Add new versions above older versions. Until this repo has automated changelog tooling, update `CHANGELOG.md` by hand in the same change that introduces the notable behavior or release prep.
+
 ## Release Guidelines
 
 Production releases are zip files hosted on GitHub Releases at `cmer/gateopener`. Run `./scripts/build-prod.sh <version>` locally first, smoke-test `build/GateOpener.app`, then publish with `./scripts/release-github.sh <version>`. Tags use the `v<version>` pattern, for example `v1.0.0`. Set `GH_REPO=owner/name` to publish elsewhere.
