@@ -44,6 +44,41 @@ To publish that zip directly to GitHub Releases in `cmer/gateopener`, authentica
 ./scripts/release-github.sh 1.0.0
 ```
 
+## Signed Releases
+
+For public releases signed with an Apple Developer ID, install a `Developer ID Application` certificate in your login keychain and store notarization credentials once:
+
+```sh
+xcrun notarytool store-credentials gateopener-notary \
+  --apple-id you@example.com \
+  --team-id TEAMID
+```
+
+Find the exact signing identity:
+
+```sh
+security find-identity -v -p codesigning
+```
+
+Then build, sign, notarize, staple, package, and publish a GitHub Release:
+
+```sh
+./scripts/release-signed-github.sh 1.0.0
+```
+
+The signed release script finds installed Developer ID Application certificates and prompts when it needs a choice. It uses `bloomworks-notary` as the default notary keychain profile and `com.cmer.gateopener` as the release bundle identifier.
+
+For unattended releases, provide overrides:
+
+```sh
+DEVELOPER_ID_APPLICATION="Developer ID Application: Your Name (TEAMID)" \
+NOTARY_PROFILE="bloomworks-notary" \
+SKIP_RELEASE_CONFIRMATION=1 \
+  ./scripts/release-signed-github.sh 1.0.0
+```
+
+Set `BUNDLE_ID=...` to change the bundle identifier, or `GH_REPO=owner/name` to publish somewhere other than `cmer/gateopener`.
+
 ## Use
 
 Drag a `.app` bundle from Finder onto the GateOpener window. The app runs:
