@@ -6,13 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## Unreleased
 
+## [1.2.0] - 2026-07-16
+
+### Features
+
+- Add a custom glass gate application icon.
+
 ### Build
 
 - Add a signed GitHub release script for Developer ID signing and notarization.
+- Publish a Homebrew cask (`cmer/homebrew-tap`) so GateOpener installs with `brew install --cask cmer/tap/gateopener`.
+- Update the Homebrew cask automatically at the end of the signed release script (skip with `SKIP_CASK_UPDATE=1`).
 
 ### Documentation
 
 - Document signed release setup and usage for Claude.
+- Simplify the README to a one-line Homebrew install plus usage; drop build-from-source instructions.
 
 ## [1.1.0] - 2026-06-24
 

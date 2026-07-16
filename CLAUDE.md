@@ -48,6 +48,22 @@ SKIP_RELEASE_CONFIRMATION=1 \
 
 Set `BUNDLE_ID=...` to override the bundle identifier. Set `GH_REPO=owner/name` to publish outside `cmer/gateopener`.
 
+## Homebrew Distribution
+
+GateOpener is distributed through the personal tap `cmer/homebrew-tap` (repo `github.com/cmer/homebrew-tap`, cask at `Casks/gateopener.rb`). Users install with:
+
+```sh
+brew install --cask cmer/tap/gateopener
+```
+
+At the end of a successful release, `release-signed-github.sh` clones the tap, rewrites the cask's `version` and `sha256` to match the new zip, and pushes the change. This step is best-effort: the GitHub release is already published by then, so a tap failure only prints a warning plus the sha256 for a manual fix.
+
+- Defaults: `TAP_REPO=cmer/homebrew-tap`, `CASK_NAME=gateopener`.
+- Set `SKIP_CASK_UPDATE=1` to skip the cask update (still prints the zip sha256).
+- Set `TAP_REPO=owner/homebrew-name` / `CASK_NAME=...` to target a different tap or cask.
+
+The cask is arm64-only and requires macOS Ventura (13.0), matching the build's deployment target. Additional apps go in the same tap as more files under `Casks/`.
+
 ## One-Time Signing Setup
 
 Install a `Developer ID Application` certificate in the login keychain, then confirm it is visible:

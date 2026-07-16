@@ -8,6 +8,8 @@
 	<string>${APP_NAME}</string>
 	<key>CFBundleIdentifier</key>
 	<string>${BUNDLE_ID}</string>
+	<key>CFBundleIconFile</key>
+	<string>GateOpener</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -30,9 +32,9 @@
 		</dict>
 	</array>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>1.2.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>1.2.0</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>NSHighResolutionCapable</key>

@@ -29,6 +29,8 @@ TAG="v$VERSION"
 GH_REPO="${GH_REPO:-cmer/gateopener}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-}"
 RELEASE_BUNDLE_ID="${BUNDLE_ID:-com.cmer.gateopener}"
+TAP_REPO="${TAP_REPO:-cmer/homebrew-tap}"
+CASK_NAME="${CASK_NAME:-gateopener}"
 CURRENT_BRANCH="$(git branch --show-current)"
 
 is_interactive() {
@@ -118,6 +120,9 @@ confirm_release() {
   echo "  Bundle ID: $RELEASE_BUNDLE_ID"
   echo "  Signing identity: $DEVELOPER_ID_APPLICATION"
   echo "  Notary profile: $NOTARY_PROFILE"
+  if [ -n "$TAP_REPO" ] && [ "${SKIP_CASK_UPDATE:-}" != "1" ]; then
+    echo "  Homebrew tap: $TAP_REPO (cask: $CASK_NAME)"
+  fi
   echo
 
   local answer
@@ -130,6 +135,61 @@ confirm_release() {
       exit 0
       ;;
   esac
+}
+
+update_homebrew_cask() {
+  # Best-effort: the GitHub release is already published, so a tap failure here
+  # must not fail the script. Report the sha256 so the cask can be updated by hand.
+  local sha
+  sha="$(shasum -a 256 "$ZIP_PATH" | awk '{print $1}')"
+
+  echo "-> Release zip sha256: $sha"
+
+  if [ -z "$TAP_REPO" ] || [ "${SKIP_CASK_UPDATE:-}" = "1" ]; then
+    echo "-> Skipping Homebrew cask update (set TAP_REPO and unset SKIP_CASK_UPDATE to enable)."
+    return
+  fi
+
+  local tap_dir cask_path
+  tap_dir="$(mktemp -d)"
+  cask_path="$tap_dir/Casks/$CASK_NAME.rb"
+
+  if ! git clone --depth 1 "https://github.com/$TAP_REPO.git" "$tap_dir" >/dev/null 2>&1; then
+    echo "!! Could not clone $TAP_REPO. Update the cask manually:" >&2
+    echo "     version \"$VERSION\" / sha256 \"$sha\"" >&2
+    rm -rf "$tap_dir"
+    return
+  fi
+
+  if [ ! -f "$cask_path" ]; then
+    echo "!! $CASK_NAME.rb not found in $TAP_REPO. Update the cask manually:" >&2
+    echo "     version \"$VERSION\" / sha256 \"$sha\"" >&2
+    rm -rf "$tap_dir"
+    return
+  fi
+
+  # Rewrite the version and sha256 stanzas in place.
+  /usr/bin/sed -i '' \
+    -e "s/^\( *version \).*/\1\"$VERSION\"/" \
+    -e "s/^\( *sha256 \).*/\1\"$sha\"/" \
+    "$cask_path"
+
+  if git -C "$tap_dir" diff --quiet -- "Casks/$CASK_NAME.rb"; then
+    echo "-> Cask $CASK_NAME already at $VERSION; nothing to update."
+    rm -rf "$tap_dir"
+    return
+  fi
+
+  git -C "$tap_dir" add "Casks/$CASK_NAME.rb"
+  if git -C "$tap_dir" commit -q -m "Update $CASK_NAME to $VERSION" &&
+    git -C "$tap_dir" push -q; then
+    echo "-> Updated $TAP_REPO cask $CASK_NAME to $VERSION."
+  else
+    echo "!! Failed to push cask update to $TAP_REPO. Update it manually:" >&2
+    echo "     version \"$VERSION\" / sha256 \"$sha\"" >&2
+  fi
+
+  rm -rf "$tap_dir"
 }
 
 if [ -n "$(git status --porcelain)" ]; then
@@ -209,3 +269,5 @@ gh release create "$TAG" "$ZIP_PATH" \
   --notes "$APP_NAME $VERSION release."
 
 echo "Published: $TAG to $GH_REPO"
+
+update_homebrew_cask
