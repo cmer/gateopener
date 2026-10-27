@@ -92,3 +92,5 @@ xcrun notarytool store-credentials bloomworks-notary \
 ## Changelog
 
 Keep `CHANGELOG.md` updated with notable user-facing, build, release, and documentation changes. Add unreleased entries above released versions until release prep promotes them to a versioned section.
+
+End any turn that reports on long-running or delegated work with a short status: **Goal**, **Done**, **Next**, **Needs you** (or "nothing").
