@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## Unreleased
 
+### Bug Fixes
+
+- Make the **Open in GateOpener** Finder service appear for `.app` bundles by declaring the `com.apple.application-bundle` UTI in `NSSendFileTypes` instead of the `app` file extension.
+- Enable the Finder service by default by adding `NSRequiredContext`, so users no longer have to turn it on in System Settings.
+
 ## [1.2.0] - 2026-07-16
 
 ### Features
