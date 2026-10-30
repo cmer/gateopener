@@ -53,9 +53,11 @@
 			<string>openInGateOpener</string>
 			<key>NSPortName</key>
 			<string>${APP_NAME}</string>
+			<key>NSRequiredContext</key>
+			<dict/>
 			<key>NSSendFileTypes</key>
 			<array>
-				<string>app</string>
+				<string>com.apple.application-bundle</string>
 			</array>
 		</dict>
 	</array>
